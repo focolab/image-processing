@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="image-processing",
+    name="improc",
     version="0.0.0",
     author="UCSF FOCO Lab",
     author_email="jackson.borchardt2@ucsf.edu",

@@ -296,8 +296,7 @@ def peak_filter_2(data=None, params=None):
     footprint[1,:,1] = 1
     footprint[1,1,:] = 1
     for i in range(3):
-        filtered = 
-        morphology.erosion(filtered, selem=footprint)
+        filtered = morphology.erosion(filtered, selem=footprint)
     labeled_features, num_features = ndimage.label(filtered)
     centers = []
     for feature_index in range(num_features):
