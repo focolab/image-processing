@@ -1,0 +1,3 @@
+# Image Segmentation
+
+This repository is intended to centralize and encapsulate code for image processing which currently exists within but is shared across separate broader repositories like `gcamp-extractor` and `wb-utils`. In order to promote reuse across projects and reduce dependency bloat, implementations within this repository should be limited to core algorithmic functionality; helper functionality for things like GUIfication and plotting should live within the client repository where it is needed.
