@@ -275,6 +275,83 @@ def findpeaks3d(im):
 
     return centers_newway
 
+def findpeaks3d_26nn(data=None, verbose=False):
+    """Improved local maximum detection for a 3D array
+
+    Parameters
+    ---------
+    data : 3d ndarray
+    verbose : bool
+        Spam output that might help debugging
+
+    Returns
+    -------
+    peaks : ndarray
+        coordinates of the local maxima
+
+
+    Find local maxima by comparison to the 26NN voxels (1-padded bounding cube)
+
+    Using a maximum filter on a huge 3D chunk (say with 
+    scipy.ndimage.maximum_filter()) is prohibitively slow. Therefore, this
+    function uses a two step search. The legacy peakfinding function
+    (findpeaks3d, which considers only 6NN) is used first for speed. Then,
+    detected peaks are compared to all 26NN to find the proper local maxima.
+    The speedup of this two-step approach relies on there being very few actual
+    peaks in the 3D chunk (a safe assumption for C. elegans neurons).
+    """
+    peaks1 = findpeaks3d(data)
+
+    def keep(ix, shape):
+        """only keep peaks that are not on the box edge"""
+        for lim, size in zip(ix, shape):
+            if lim[0] < 0:
+                return False
+            if lim[2] > size-1:
+                return False
+        return True
+
+    peaks2 = []
+    for p in peaks1:
+        req_ix = [[i-1, i, i+1] for i in p]
+        if keep(req_ix, data.shape):
+            ix = np.ix_(*req_ix)
+            bbox = data[ix]*1
+            pk_val = bbox[1,1,1]*1
+            bbox[1,1,1]-=1
+            if all(pk_val > bbox.ravel()):
+                peaks2.append(p)
+            else:
+                if verbose:
+                    print('-- false peak --')
+                    print(bbox)
+    if verbose:
+        print('----------------')
+        print('num real:', len(peaks2))
+        print('num totl:', len(peaks1))
+        print('----------------')
+    return np.asarray(peaks2)
+
+def template_filter(data, template, threshold=0.5):
+    """template filter and threshold 
+
+    parameters
+    ----------
+    data : (ndarray)
+    template : (ndarray) same number of dimensions as data (i.e. 3D if data is 3D)
+    threshold : (float) float in [-1, 1] 
+
+    returns
+    -------
+    filtered: (ndarray) same shape as input data
+    """
+    # pad the template match result to match the original data shape
+    res = feature.match_template(data, template)
+    pad = [int((x-1)/2) for x in template.shape]
+    res = np.pad(res, tuple(zip(pad, pad)))
+    filtered = res*np.array(res>threshold)
+    return filtered
+
 def peak_filter_2(data=None, params=None):
     """peakfilter 2: template matching filter scheme"""
     # handle params
@@ -287,11 +364,7 @@ def peak_filter_2(data=None, params=None):
     if template is None:
         raise Exception('template required')
 
-    # the template match result needs padding to match the original data dimensions
-    res = feature.match_template(data, template)
-    pad = [int((x-1)/2) for x in template.shape]
-    res = np.pad(res, tuple(zip(pad, pad)))
-    filtered = res*np.array(res>p['threshold'])
+    filtered = template_filter(data, template, p['threshold'])
     footprint = np.zeros((3,3,3))
     footprint[1,:,1] = 1
     footprint[1,1,:] = 1
