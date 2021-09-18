@@ -386,42 +386,33 @@ def peak_filter_2(data=None, params=None):
     centers = ensure_spacing(centers, spacing=9)
     return np.rint(centers).astype(int)
 
-def peakfinder(data=None, peaks=None, params=None, pad=None, legacy=False):
+def get_bounded_chunks(data=None, peaks=None, pad=None):
     """Do filtering and peakfinding, then some extra useful things
+
     Parameters
     ----------
-    filt : function
-        A function of the form ```filtered=pf(data, params)``` that takes
-        a 3D array and parameter dict and returns a filtered array (same size).
-    chunk : DataChunk
-    params : dict
-        These get passed to pf
+    data : ndarray
+        array to chunk
+    peaks : ndarray
+        peak coordinates for data
     pad : list/array
-        Defines bounding box around a peak by padding voxels to both sides
-    legacy : bool
-        If true, use legacy 3D peakfinding (6NN), otherwise 26NN
+        defines bounding box around a peak by padding voxels to both sides
+
     Returns
     -------
-    out : dict
-        May be bloated, but holds extra info useful for diagnostics
+    out : ndarray
+        array of bounded chunks of data around peaks
+
     """
-    
     # cull out peaks for which the bounding box goes beyond data bounds
-    peaks_inbounds, blobs, bboxes = [], [], []
-    for i, x in enumerate(peaks):
-        blob = SegmentedBlob(index=i, pos=x, dims=["z","x","y"], pad=pad)
+    chunks = []
+    for position in peaks:
         try:
-            chreq = blob.chreq()
-            bbox = data[chreq["z"][0]:chreq["z"][1], chreq["x"][0]:chreq["x"][1], chreq["y"][0]:chreq["y"][1]]
-            peaks_inbounds.append(x)
-            blobs.append(blob)
-            bboxes.append(bbox)
+            chunk = data[position[0] - pad[0]:position[0] + pad[0] + 1, position[1] - pad[1]:position[1] + pad[1] + 1, position[2] - pad[2]:position[2] + pad[2] + 1]
+            chunks.append(chunk)
         except:
             pass
-
-    avg3D_chunk = np.mean([x.data for x in bboxes], axis=0)
-
-    return np.array(bboxes), blobs
+    return np.array(chunks)
 
 class BlobTemplate(object):
     """3D blob template
