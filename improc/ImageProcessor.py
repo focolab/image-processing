@@ -292,7 +292,7 @@ def template_moco(
 
     # apply median filter
     frame1 = cv2.medianBlur(frame1, med_filt_size)
-    frame2 = cv2.medianBlur(frame1, med_filt_size)
+    frame2 = cv2.medianBlur(frame2, med_filt_size)
 
     # template filtering
     # note that because of template matching, filtered images may be slightly different dimensionality than input.
