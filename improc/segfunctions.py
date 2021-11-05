@@ -387,7 +387,7 @@ def peak_filter_2(data=None, params=None):
     return np.rint(centers).astype(int)
 
 def get_bounded_chunks(data=None, peaks=None, pad=None):
-    """Do filtering and peakfinding, then some extra useful things
+    """Get bounding chunks around peaks
 
     Parameters
     ----------
@@ -409,6 +409,8 @@ def get_bounded_chunks(data=None, peaks=None, pad=None):
     for position in peaks:
         try:
             chunk = data[position[0] - pad[0]:position[0] + pad[0] + 1, position[1] - pad[1]:position[1] + pad[1] + 1, position[2] - pad[2]:position[2] + pad[2] + 1]
+            # this is failing to fail for out-of-bounds chunks, assert is a quick fix
+            assert chunk.shape == (pad[0]*2+1, pad[1]*2+1, pad[2]*2+1)
             chunks.append(chunk)
         except:
             pass
