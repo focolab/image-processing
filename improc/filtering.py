@@ -6,7 +6,7 @@ for the requested window size, the temporal window will be truncated as necessar
 """
 def get_tmip(mft, frame, num_timepoints=11):
     start_t = max(0, frame - num_timepoints // 2)
-    stop_t = min(mft.numframes / mft.numz, frame + num_timepoints // 2)
+    stop_t = min(np.rint(mft.numframes / mft.numz).astype(int) - 1, frame + num_timepoints // 2)
     volume_indices = list(range(start_t, stop_t + 1))
     volumes = np.array([mft.get_t(frame) for frame in volume_indices])
     return np.max(volumes, axis=0)
@@ -17,7 +17,7 @@ for the requested window size, the temporal window will be truncated as necessar
 """
 def get_tavg(mft, frame, num_timepoints=11):
     start_t = max(0, frame - num_timepoints // 2)
-    stop_t = min(mft.numframes / mft.numz, frame + num_timepoints // 2)
+    stop_t = min(np.rint(mft.numframes / mft.numz).astype(int) - 1, frame + num_timepoints // 2)
     volume_indices = list(range(start_t, stop_t + 1))
     volumes = np.array([mft.get_t(frame) for frame in volume_indices])
     return np.mean(volumes, axis=0)
