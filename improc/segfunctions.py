@@ -415,3 +415,31 @@ def get_bounded_chunks(data=None, peaks=None, pad=None):
         except:
             pass
     return np.array(chunks)
+
+def peak_local_max_anisotropic(image, anisotropy, min_distance, num_peaks, mask=None):
+    """
+    A gross hack to make skimage's peak_local_max work on anisotropic data
+
+    Parameters
+    ----------
+    image : ndarray
+    anisotropy : list or tuple of ints
+    min_distance : int (minimium isotropic voxel distance for peak_local_max)
+    num_peaks: int (num_peaks for peak_local_max)
+
+    Returns
+    -------
+    peaks : ndarray
+    mask: ndarray (returned so that it can be passed back for repeat calls to avoid recalculation)
+    """
+    if mask is None:
+        expanded_shape = tuple([dim_len * ani for dim_len, ani in zip(image.shape, anisotropy)])
+        mask = np.zeros(expanded_shape, dtype=np.uint16)
+        mask[tuple([np.s_[::ani] for ani in anisotropy])] = 1
+        expanded_image = np.copy(image)
+        for dim in range(len(anisotropy)):
+            expanded_image = np.repeat(expanded_image, anisotropy[dim], axis=dim)
+        expanded_image*= mask
+        peaks = feature.peak_local_max(expanded_image, min_distance=min_distance, num_peaks=num_peaks)
+        peaks //= anisotropy
+        return peaks, mask
