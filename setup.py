@@ -18,7 +18,13 @@ setuptools.setup(
           'numpy',
           'scipy',
           'opencv-python-headless',
-          'scikit-image'
+          'scikit-image',
+          'matplotlib',
+          'pandas',
+          'tifffile',
+          'pynwb',
+          'scipy',
+          'matlab'
       ],
     python_requires='>=3.6',
 )
