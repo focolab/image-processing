@@ -8,6 +8,101 @@ from scipy import ndimage, optimize, spatial
 from skimage import feature, morphology
 from skimage._shared.coord import ensure_spacing
 
+from skimage.feature.peak import _get_excluded_border_width, _get_threshold, _get_peak_mask, _exclude_border
+def _get_high_intensity_peaks(image, mask, num_peaks, min_distance, p_norm, anisotropy=None):
+    """
+    This is (unfortunately) a copy of https://github.com/scikit-image/scikit-image/blob/5e74a4a3a5149a8a14566b81a32bb15499aa3857/skimage/feature/peak.py#L10-L32
+    It has been updated to take anisotropy into account
+    """
+    # get coordinates of peaks
+    coord = np.nonzero(mask)
+    intensities = image[coord]
+    # Highest peak first
+    idx_maxsort = np.argsort(-intensities)
+    coord = np.transpose(coord)[idx_maxsort]
+    if np.isfinite(num_peaks):
+        max_out = int(num_peaks)
+    else:
+        max_out = None
+    if anisotropy is not None:
+        coord *= anisotropy[None,:]
+    coord = ensure_spacing(coord, spacing=min_distance, p_norm=p_norm,
+                           max_out=max_out)
+    if anisotropy is not None:
+        coord /= anisotropy[None,:]
+        coord = coord.astype(int)
+    if len(coord) > num_peaks:
+        coord = coord[:num_peaks]
+    return coord
+def peak_local_max(image, min_distance=1, threshold_abs=None,
+                   threshold_rel=None, exclude_border=True,
+                   num_peaks=np.inf, footprint=None, labels=None,
+                   num_peaks_per_label=np.inf, p_norm=np.inf, anisotropy=None):
+    """
+    This is (unfortunately) a copy of https://github.com/scikit-image/scikit-image/blob/v0.20.0/skimage/feature/peak.py#L120-L309
+    It has been updated to take anisotropy into account
+    """
+    if (footprint is None or footprint.size == 1) and min_distance < 1:
+        warn("When min_distance < 1, peak_local_max acts as finding "
+             "image > max(threshold_abs, threshold_rel * max(image)).",
+             RuntimeWarning, stacklevel=2)
+    border_width = _get_excluded_border_width(image, min_distance,
+                                              exclude_border)
+    threshold = _get_threshold(image, threshold_abs, threshold_rel)
+    if footprint is None:
+        size = 2 * min_distance + 1
+        footprint = np.ones((size, ) * image.ndim, dtype=bool)
+    else:
+        footprint = np.asarray(footprint)
+    if labels is None:
+        # Non maximum filter
+        mask = _get_peak_mask(image, footprint, threshold)
+        mask = _exclude_border(mask, border_width)
+        # Select highest intensities (num_peaks)
+        coordinates = _get_high_intensity_peaks(image, mask,
+                                                num_peaks,
+                                                min_distance, p_norm, anisotropy=anisotropy)
+    else:
+        _labels = _exclude_border(labels.astype(int, casting="safe"),
+                                  border_width)
+        if np.issubdtype(image.dtype, np.floating):
+            bg_val = np.finfo(image.dtype).min
+        else:
+            bg_val = np.iinfo(image.dtype).min
+        # For each label, extract a smaller image enclosing the object of
+        # interest, identify num_peaks_per_label peaks
+        labels_peak_coord = []
+        for label_idx, roi in enumerate(ndiimage.find_objects(_labels)):
+            if roi is None:
+                continue
+            # Get roi mask
+            label_mask = labels[roi] == label_idx + 1
+            # Extract image roi
+            img_object = image[roi].copy()
+            # Ensure masked values don't affect roi's local peaks
+            img_object[np.logical_not(label_mask)] = bg_val
+            mask = _get_peak_mask(img_object, footprint, threshold, label_mask)
+            coordinates = _get_high_intensity_peaks(img_object, mask,
+                                                    num_peaks_per_label,
+                                                    min_distance,
+                                                    p_norm, anisotropy=anisotropy)
+            # transform coordinates in global image indices space
+            for idx, s in enumerate(roi):
+                coordinates[:, idx] += s.start
+            labels_peak_coord.append(coordinates)
+        if labels_peak_coord:
+            coordinates = np.vstack(labels_peak_coord)
+        else:
+            coordinates = np.empty((0, 2), dtype=int)
+        if len(coordinates) > num_peaks:
+            out = np.zeros_like(image, dtype=bool)
+            out[tuple(coordinates.T)] = True
+            coordinates = _get_high_intensity_peaks(image, out,
+                                                    num_peaks,
+                                                    min_distance,
+                                                    p_norm, anisotropy=anisotropy)
+    return coordinates
+
 def reg_peaks(im, peaks, thresh = 36, anisotropy = (6,1,1)):
     """
     function that drops peaks that are found too close to each other (Not used by Spool or Thread)
