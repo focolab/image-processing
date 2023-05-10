@@ -25,7 +25,9 @@ def _get_high_intensity_peaks(image, mask, num_peaks, min_distance, p_norm, anis
     else:
         max_out = None
     if anisotropy is not None:
-        coord *= anisotropy[None,:]
+        if not isinstance(anisotropy, np.ndarray):
+            anisotropy = np.array(anisotropy)
+        coord = coord.astype(anisotropy.dtype) * anisotropy[None,:]
     coord = ensure_spacing(coord, spacing=min_distance, p_norm=p_norm,
                            max_out=max_out)
     if anisotropy is not None:
