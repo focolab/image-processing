@@ -1,10 +1,10 @@
 import setuptools
 
 setuptools.setup(
-    name="improc",
+    name="foco_improc",
     version="0.0.0",
     author="UCSF FOCO Lab",
-    author_email="jackson.borchardt2@ucsf.edu",
+    author_email="focolabdev@gmail.com",
     description="standalone repository for image processing algorithm implementations",
     long_description_content_type=open('README.md').read(),
     url="",
