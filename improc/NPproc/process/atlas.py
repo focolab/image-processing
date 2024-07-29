@@ -11,8 +11,6 @@ from utils.utils import convert_coordinates
 class Atlas:
 
     def __init__(self, atlas_file = 'data/atlases/atlas_xx_rgb.mat', ganglia = 'data/atlases/neuron_ganglia.csv'):
-
-        
         
         eng = matlab.engine.start_matlab()
         self.ganglia = pd.read_csv(ganglia)
